@@ -305,6 +305,7 @@ async function fetchZedRev(
     });
     if (!response.ok) return undefined;
     full = String(((await response.json()) as Toml).sha);
+    if (!SAFE_REF.test(full)) return undefined;
   } catch {
     return undefined;
   }
@@ -1798,6 +1799,20 @@ async function publish(
 const SEMVER =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
+/**
+ * Restrict external Zed refs to the characters a branch, tag or commit id
+ * can contain. Commands run through `spawn` pass an argv array, so a value
+ * is never re-parsed as a command line; this validation keeps a value from
+ * landing in a git option position instead of the ref position.
+ */
+const SAFE_REF = /^(?!-)[0-9A-Za-z][0-9A-Za-z._/-]{0,127}$/;
+
+function assertSafeRef(rev: string): string {
+  if (!SAFE_REF.test(rev))
+    throw new BumpError(`\`${rev}\` is not a valid Zed branch, tag or commit`);
+  return rev;
+}
+
 const USAGE = `Usage: script/bump-gpui.ts [VERSION] [options]
 
 Publish Zed's GPUI crates to crates.io as ${PUBLISH_PREFIX}-*.
@@ -1867,7 +1882,7 @@ function parseCommandLine(argv: string[]): Args {
     throw new BumpError(`\`${version}\` is not a valid semver version`);
   return {
     version,
-    rev: parsed.values.rev as string,
+    rev: assertSafeRef(parsed.values.rev as string),
     zed: parsed.values.zed as string | undefined,
     dryRun: parsed.values["dry-run"] as boolean,
     stageOnly: parsed.values["stage-only"] as boolean,
