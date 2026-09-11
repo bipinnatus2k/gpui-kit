@@ -88,6 +88,27 @@ Toolbar::new("toolbar")
     .left("Ready")
 ```
 
+## Groups
+
+Wrap related controls in `ToolbarGroup` (re-exported from `gpui_base`) to give them an accessible name, so assistive technology reads a run of controls as one unit:
+
+```rust
+use gpui_kit::component::toolbar::ToolbarGroup;
+
+Toolbar::new("document-toolbar")
+    .left(
+        ToolbarGroup::new("history-group")
+            .label("History")
+            .gap_2() // match the bar's own item spacing
+            .child(Button::new("undo").ghost().icon(IconName::Undo2).tooltip("Undo"))
+            .child(Button::new("redo").ghost().icon(IconName::Redo2).tooltip("Redo")),
+    )
+```
+
+Unlike Base UI's `Toolbar.Group`, a group cannot disable its children: that API propagates through React context into Base UI's own button primitives, which has no equivalent for arbitrary GPUI children. Disabling the hosted controls is the caller's job.
+
+`Separator` and `Link` need no toolbar-specific wrappers — pass `Separator::vertical().h_5()` and the existing `Link` component directly.
+
 ## Keyboard
 
 The toolbar exposes `Toolbar` semantics to assistive technology and owns roving keyboard focus, matching the ARIA toolbar pattern and Base UI's `Toolbar`:
