@@ -88,6 +88,27 @@ Toolbar::new("toolbar")
     .left("Ready")
 ```
 
+## 分组
+
+用 `ToolbarGroup`（从 `gpui_base` re-export）把相关控件包在一起并赋予可访问名称，辅助技术会把这一组控件读作一个整体：
+
+```rust
+use gpui_kit::component::toolbar::ToolbarGroup;
+
+Toolbar::new("document-toolbar")
+    .left(
+        ToolbarGroup::new("history-group")
+            .label("History")
+            .gap_2() // 与工具栏自身的项间距保持一致
+            .child(Button::new("undo").ghost().icon(IconName::Undo2).tooltip("Undo"))
+            .child(Button::new("redo").ghost().icon(IconName::Redo2).tooltip("Redo")),
+    )
+```
+
+与 Base UI 的 `Toolbar.Group` 不同，group 无法禁用其子控件：该 API 通过 React context 传播到 Base UI 自己的按钮 primitive，GPUI 组合模型对任意子控件没有等价机制。禁用内部控件是调用方的职责。
+
+`Separator` 和 `Link` 不需要工具栏专用封装 —— 直接传 `Separator::vertical().h_5()` 和现有的 `Link` 组件即可。
+
 ## 键盘
 
 工具栏向辅助技术暴露 `Toolbar` 语义，并拥有漫游键盘焦点，符合 ARIA toolbar 模式，与 Base UI 的 `Toolbar` 一致：
