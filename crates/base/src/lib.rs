@@ -191,7 +191,7 @@ pub use toast::{
 };
 pub use toggle::{Toggle, ToggleStyles};
 pub use toggle_group::ToggleGroup;
-pub use toolbar::Toolbar;
+pub use toolbar::{Toolbar, ToolbarGroup};
 pub use tooltip::{Tooltip, TooltipOverlay, TooltipPositioner, TooltipRequest, TooltipTransition};
 pub use touch_selection::{SelectionEdge, TouchHandle, TouchSelectionSnapshot};
 pub use tree::{Tree, TreeEntry, TreeEntryState, TreeEvent, TreeItem, TreeState};

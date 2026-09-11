@@ -1,7 +1,8 @@
 use gpui::{
     AnyElement, App, Axis, Div, ElementId, FocusHandle, InteractiveElement, Interactivity,
-    IntoElement, KeyDownEvent, ParentElement, RenderOnce, Role, Stateful,
+    IntoElement, KeyDownEvent, ParentElement, RenderOnce, Role, SharedString, Stateful,
     StatefulInteractiveElement, StyleRefinement, Styled, Window, accesskit, div,
+    prelude::FluentBuilder as _,
 };
 use smallvec::SmallVec;
 
@@ -207,6 +208,81 @@ impl RenderOnce for Toolbar {
     }
 }
 
+/// A semantic subgroup of items within a [`Toolbar`].
+///
+/// The group carries no behavior or styling of its own: the surrounding
+/// toolbar's roving arrow-key focus traverses its items exactly like the
+/// toolbar's direct children, because containment follows the element tree.
+/// Its value is structure — assistive technology announces the group and its
+/// accessible name, so a run of related controls reads as one unit ("Undo",
+/// "Redo" inside a "History" group).
+///
+/// Unlike Base UI's `Toolbar.Group`, the group cannot disable its children.
+/// That API propagates through React context into Base UI's own button
+/// primitives; GPUI composition offers no equivalent for arbitrary children,
+/// and the platform a11y layer exposes no disabled state for a container
+/// node. Disabling the hosted controls is the group owner's job.
+#[derive(IntoElement)]
+pub struct ToolbarGroup {
+    base: Stateful<Div>,
+    style: StyleRefinement,
+    label: Option<SharedString>,
+    children: SmallVec<[AnyElement; 4]>,
+}
+
+impl ToolbarGroup {
+    pub fn new(id: impl Into<ElementId>) -> Self {
+        Self {
+            base: div().id(id.into()),
+            style: StyleRefinement::default(),
+            label: None,
+            children: SmallVec::new(),
+        }
+    }
+
+    /// Sets the accessible name announced for the group, e.g. "History".
+    pub fn label(mut self, label: impl Into<SharedString>) -> Self {
+        self.label = Some(label.into());
+        self
+    }
+}
+
+impl Styled for ToolbarGroup {
+    fn style(&mut self) -> &mut StyleRefinement {
+        &mut self.style
+    }
+}
+
+impl ParentElement for ToolbarGroup {
+    fn extend(&mut self, elements: impl IntoIterator<Item = AnyElement>) {
+        self.children.extend(elements);
+    }
+}
+
+impl InteractiveElement for ToolbarGroup {
+    fn interactivity(&mut self) -> &mut Interactivity {
+        self.base.interactivity()
+    }
+}
+
+impl StatefulInteractiveElement for ToolbarGroup {}
+
+impl RenderOnce for ToolbarGroup {
+    fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
+        // A group is one inline segment of the bar, so its children flow
+        // along the row and center on the bar's cross axis; the same neutral
+        // geometry `Tab` applies. Spacing between items is the caller's
+        // (matching the bar's own gap).
+        self.base
+            .flex()
+            .items_center()
+            .role(Role::Group)
+            .when_some(self.label, |this, label| this.aria_label(label))
+            .children(self.children)
+            .refine_style(&self.style)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -231,10 +307,25 @@ mod tests {
         assert!(toolbar.children.is_empty());
     }
 
+    #[test]
+    fn test_toolbar_group_builder() {
+        let group = ToolbarGroup::new("history-group")
+            .label("History")
+            .child(div())
+            .child(div());
+
+        assert_eq!(group.label.as_deref(), Some("History"));
+        assert_eq!(group.children.len(), 2);
+    }
+
     #[cfg(test)]
     mod behavior {
         use super::*;
-        use gpui::{Context, FocusHandle, Render, TestAppContext, VisualTestContext, px};
+        use gpui::{
+            Context, Element as _, FocusHandle, Render, TestAppContext, VisualTestContext, canvas,
+            px,
+        };
+        use std::sync::{Arc, Mutex};
 
         struct NavHarness {
             items: [FocusHandle; 3],
@@ -319,6 +410,41 @@ mod tests {
 
             cx.simulate_keystrokes("right left right");
             assert_focused(cx, &item, "the only item");
+        }
+
+        #[gpui::test]
+        fn group_exposes_group_role_and_accessible_name(cx: &mut gpui::TestAppContext) {
+            type Captured = Arc<Mutex<Option<accesskit::Node>>>;
+
+            struct Probe(Captured);
+
+            impl Render for Probe {
+                fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                    let captured = self.0.clone();
+                    canvas(
+                        move |_, window, cx| {
+                            let mut node = accesskit::Node::new(Role::Group);
+                            ToolbarGroup::new("history")
+                                .label("History")
+                                .child(div().size(px(20.)))
+                                .render(window, cx)
+                                .into_element()
+                                .write_a11y_info(&mut node);
+                            *captured.lock().unwrap() = Some(node);
+                        },
+                        |_, _, _, _| {},
+                    )
+                }
+            }
+
+            let captured: Captured = Arc::new(Mutex::new(None));
+            let result = captured.clone();
+            let (_, cx) = cx.add_window_view(move |_, _| Probe(captured));
+            cx.update(|window, cx| window.draw(cx).clear(cx));
+            let node = result.lock().unwrap().take().unwrap();
+
+            assert_eq!(node.role(), Role::Group);
+            assert_eq!(node.label(), Some("History"));
         }
 
         #[gpui::test]
