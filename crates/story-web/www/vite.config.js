@@ -22,7 +22,19 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use('/gallery/assets', (req, res, next) => {
           const assetsPath = path.resolve(__dirname, '../../assets/assets');
-          const filePath = path.join(assetsPath, req.url.replace('/assets', ''));
+          // The URL is attacker-controlled in a dev session: strip the mount
+          // prefix and the query, decode escapes, and resolve inside the
+          // assets root. A resolved path that escapes the root (`../`) is
+          // rejected instead of served.
+          const relative = decodeURIComponent(req.url.split('?')[0]).replace(
+            /^\/assets\//,
+            '',
+          );
+          const filePath = path.resolve(assetsPath, relative);
+          if (!filePath.startsWith(assetsPath + path.sep)) {
+            next();
+            return;
+          }
 
           // Try to serve the file
           import('fs').then(({ default: fs }) => {
