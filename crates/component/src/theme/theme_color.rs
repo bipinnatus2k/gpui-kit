@@ -297,6 +297,10 @@ pub struct ThemeColor {
     pub status_bar: Hsla,
     /// StatusBar border color.
     pub status_bar_border: Hsla,
+    /// Toolbar background color, use for the top toolbar.
+    pub toolbar: Hsla,
+    /// Toolbar border color.
+    pub toolbar_border: Hsla,
     /// Background color for Tiles.
     pub tiles: Hsla,
     /// Warning background color.
@@ -494,6 +498,8 @@ define_theme_tokens! {
     title_bar_border,
     status_bar,
     status_bar_border,
+    toolbar,
+    toolbar_border,
     tiles,
     warning,
     warning_active,
