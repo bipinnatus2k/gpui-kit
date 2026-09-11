@@ -67,6 +67,7 @@ pub mod theme_tokens;
 mod toast;
 mod toggle;
 mod toggle_group;
+mod toolbar;
 mod tooltip;
 mod tree;
 mod undo_history;
@@ -181,6 +182,7 @@ pub use toast::{
 };
 pub use toggle::{Toggle, ToggleStyles};
 pub use toggle_group::ToggleGroup;
+pub use toolbar::Toolbar;
 pub use tooltip::{Tooltip, TooltipOverlay, TooltipPositioner, TooltipRequest, TooltipTransition};
 pub use tree::{Tree, TreeEntry, TreeEntryState, TreeEvent, TreeItem, TreeState};
 #[doc(hidden)]
