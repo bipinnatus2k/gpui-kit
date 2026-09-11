@@ -4,6 +4,8 @@ use gpui::{
 };
 use smallvec::SmallVec;
 
+pub use gpui_base::ToolbarGroup;
+
 use gpui_base::Toolbar as BaseToolbar;
 
 use crate::{ActiveTheme, Sizable, Size, StyledExt as _, h_flex};
