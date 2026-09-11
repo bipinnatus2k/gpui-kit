@@ -3,7 +3,7 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants as _},
     dock::PanelControl,
     separator::Separator,
-    toolbar::Toolbar,
+    toolbar::{Toolbar, ToolbarGroup},
     v_flex,
 };
 use gpui_kit::{
@@ -87,8 +87,13 @@ impl Render for ToolbarStory {
                                 )
                                 .left(icon_button("open", IconName::FolderOpen, "Open"))
                                 .left(Separator::vertical().h_5())
-                                .left(icon_button("undo", IconName::Undo2, "Undo"))
-                                .left(icon_button("redo", IconName::Redo2, "Redo"))
+                                .left(
+                                    ToolbarGroup::new("history-group")
+                                        .label("History")
+                                        .gap_2()
+                                        .child(icon_button("undo", IconName::Undo2, "Undo"))
+                                        .child(icon_button("redo", IconName::Redo2, "Redo")),
+                                )
                                 .right(icon_button("find", IconName::Search, "Find"))
                                 .right(Separator::vertical().h_5())
                                 .right(icon_button("settings", IconName::Settings2, "Settings"))
