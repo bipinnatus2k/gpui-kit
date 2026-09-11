@@ -30,11 +30,15 @@ GPUI Kit is a Rust desktop application framework built on GPUI, published at <ht
 This is a Rust workspace project with the following main crates:
 
 - `crates/kit` - Umbrella crate applications depend on (published as `gpui-kit`)
+- `crates/base` - Unstyled behavior and infrastructure (published as `gpui-base`)
 - `crates/component` - Core UI component library (published as `gpui-component`)
 - `crates/story` - Gallery application for showcasing and testing components
 - `crates/story-web` - Web version of the story gallery (using WebAssembly)
-- `crates/component-macros` - Procedural macros (`IntoPlot` derive)
-- `crates/assets` - Static assets
+- `crates/component-macros` - Procedural macros (`IntoPlot` derive, `icon_named!`)
+- `crates/assets` - Static assets, including the default icon set (`assets/icons/`)
+- `crates/shell` - JavaScript scripting runtime for a Rust host (published as `gpui-shell`)
+- `crates/component-shell` - JavaScript component bindings for `gpui-shell`
+- `crates/fps` - Realtime performance HUD for GPUI applications
 - `crates/webview` - WebView component support
 - `examples/` - Various example applications
 
@@ -53,8 +57,8 @@ cargo run --example table
 # Build the project
 cargo build
 
-# Lint check
-cargo clippy -- --deny warnings
+# Lint check (the packages CI gates)
+cargo clippy -p gpui-component -p gpui-component-story -p gpui-kit-assets -- --deny warnings
 
 # Format check
 cargo fmt --check
@@ -245,8 +249,7 @@ Text input system based on Rope data structure:
   that style. Do not blindly use conventional prefixes like `fix:` or `feat:`
   unless the existing PR title style uses them.
 - When a PR changes the public API of `crates/component`, add a `## Breaking Changes`
-  section with `diff` blocks showing the old and new usage. See PR #2691 and
-  `.claude/skills/gpui-component-dev/references/pr-description.md`.
+  section with `diff` blocks showing the old and new usage. See PR #2691 for the format.
 - Avoid `Kind` as a type-name suffix. It says an enum classifies something
   without saying what it classifies, and carries no meaning a reader could not
   already infer from `enum`. Name the type after what its variants _are_
@@ -264,11 +267,14 @@ Text input system based on Rope data structure:
 The `Icon` element does not include SVG files by default. You need to:
 
 - Use [Lucide](https://lucide.dev) or other icon libraries
-- Name SVG files according to the `IconName` enum definition (located in `crates/component/src/icon.rs`)
+- The default icon set lives in `crates/assets/assets/icons/`. The `IconName`
+  enum in `crates/component/src/icon.rs` is generated from those files by the
+  `icon_named!` macro — one PascalCase variant per SVG file name. To add an
+  icon, add a Lucide-style SVG to that directory.
 
 ## Dependencies
 
-- GPUI: Git version from Zed repository
+- GPUI: `gpui-pre*` snapshot crates pinned in the workspace `Cargo.toml` (bump with `script/bump-gpui.ts`)
 - Tree-sitter: For syntax highlighting
 - Ropey: Rope data structure for text, and `RopeExt` trait with more features.
 - Markdown rendering: `markdown` crate
@@ -317,7 +323,6 @@ This project has custom Claude Code skills to assist with common development tas
 
 - **gpui-kit** (`skills/`) - Building applications on the `gpui-kit` crate: setup, component catalog, stateless/stateful patterns, theming, GPUI mechanics (actions, async, contexts, custom elements, entities, events, focus, global state, layout, `ElementId`, testing), and the normative Coding Guides
 - **gpui-kit-design-guides** (`skills/`) - The normative Design Guides; load before any UI, layout, interaction, or interface-copy work
-- **gpui-component-dev** (`.claude/skills/`) - Contributing to gpui-component: creating new components, writing stories, writing documentation, writing PR descriptions
 
 When working on tasks related to these areas, Claude Code will automatically use the appropriate skill to provide specialized guidance and patterns.
 
