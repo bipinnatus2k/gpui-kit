@@ -90,6 +90,7 @@ pub mod table;
 pub mod tag;
 pub mod text;
 pub mod theme;
+pub mod toolbar;
 pub mod tooltip;
 pub mod tree;
 
