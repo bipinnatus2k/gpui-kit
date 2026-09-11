@@ -67,6 +67,7 @@ collapsed: false
 - [Sheet](sheet) - Slide-in panel from edges
 - [Sidebar](sidebar) - Navigation sidebar
 - [StatusBar](status-bar) - Bottom status bar with left/center/right regions
+- [Toolbar](toolbar) - Top toolbar with left/right regions and sizes
 
 ### Advanced Components
 
