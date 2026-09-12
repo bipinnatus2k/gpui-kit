@@ -11,6 +11,7 @@ not enable the gallery's test-support development dependency.
 | Editor | `cargo run -p example-editor` |
 | Brush | `cargo run -p example-brush` |
 | Dock | `cargo run -p example-dock` |
+| Dock Tabs | `cargo run -p example-dock-tabs` |
 | HTML | `cargo run -p example-html` |
 | Large text | `cargo run -p example-large-text` |
 | Markdown | `cargo run -p example-markdown` |

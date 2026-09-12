@@ -2524,6 +2524,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-dock-tabs"
+version = "0.6.0"
+dependencies = [
+ "anyhow",
+ "gpui-kit",
+ "serde_json",
+]
+
+[[package]]
 name = "example-editor"
 version = "0.6.0"
 dependencies = [
