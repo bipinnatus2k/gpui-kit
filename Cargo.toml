@@ -9,6 +9,7 @@ members = [
     "crates/story",
     "crates/story-web",
     "crates/component",
+    "crates/ribbon",
     "crates/assets",
     "crates/fps",
     "crates/webview",
@@ -25,6 +26,7 @@ members = [
     "examples/markdown",
     "examples/stream-markdown",
     "examples/tiles",
+    "examples/ribbon",
     "examples/window_title",
     "examples/dialog_overlay",
     "examples/webview",
@@ -49,6 +51,7 @@ edition = "2024"
 [workspace.dependencies]
 gpui-kit = { path = "crates/kit", version = "0.6.0" }
 gpui-component = { path = "crates/component", version = "0.6.0" }
+gpui-ribbon = { path = "crates/ribbon", version = "0.6.0" }
 gpui-base = { path = "crates/base", version = "0.6.0" }
 gpui-component-macros = { path = "crates/component-macros", version = "0.6.0" }
 gpui-kit-assets = { path = "crates/assets", version = "0.6.0" }

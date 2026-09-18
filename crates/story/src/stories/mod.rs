@@ -1,6 +1,10 @@
 use gpui_kit::component::dock::PanelControl;
 use gpui_kit::{AnyView, App, AppContext as _, Entity, Hsla, Pixels, Render, Window, px};
 
+// The ribbon story relies on `gpui_ribbon::init` (called below) for the
+// key tip key bindings.
+use gpui_ribbon as _;
+
 mod accordion_story;
 mod alert_dialog_story;
 mod alert_story;
@@ -48,6 +52,7 @@ mod progress_story;
 mod radio_story;
 mod rating_story;
 mod resizable_story;
+mod ribbon_story;
 mod scrollbar_story;
 mod select_story;
 mod separator_story;
@@ -122,6 +127,7 @@ pub use progress_story::ProgressStory;
 pub use radio_story::RadioStory;
 pub use rating_story::RatingStory;
 pub use resizable_story::ResizableStory;
+pub use ribbon_story::RibbonStory;
 pub use scrollbar_story::ScrollbarStory;
 pub use select_story::SelectStory;
 pub use separator_story::SeparatorStory;
@@ -151,6 +157,7 @@ pub use virtual_list_story::VirtualListStory;
 pub use welcome_story::WelcomeStory;
 
 pub(crate) fn init(cx: &mut App) {
+    gpui_ribbon::init(cx);
     input_story::init(cx);
     combobox_story::init(cx);
     rating_story::init(cx);

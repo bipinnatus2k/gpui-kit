@@ -2574,6 +2574,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-ribbon"
+version = "0.6.0"
+dependencies = [
+ "anyhow",
+ "gpui-kit",
+ "gpui-ribbon",
+]
+
+[[package]]
 name = "example-stream-markdown"
 version = "0.6.0"
 dependencies = [
@@ -3640,6 +3649,7 @@ dependencies = [
  "gpui-fps",
  "gpui-kit",
  "gpui-pre-reqwest-client",
+ "gpui-ribbon",
  "gpui-shell",
  "gtk",
  "itertools 0.14.0",
@@ -4259,6 +4269,15 @@ name = "gpui-pre-ztracing-macro"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53f82b48b20d2eec9d121f2fc8cf7ac3e917455ad05482fa2cb87260e50e6790"
+
+[[package]]
+name = "gpui-ribbon"
+version = "0.6.0"
+dependencies = [
+ "gpui-base",
+ "gpui-pre",
+ "serde",
+]
 
 [[package]]
 name = "gpui-shell"

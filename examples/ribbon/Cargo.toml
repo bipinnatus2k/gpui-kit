@@ -1,0 +1,14 @@
+[package]
+name = "example-ribbon"
+description = "A complete ribbon example modeled after the Fluent.Ribbon showcase."
+version = "0.6.0"
+publish = false
+edition.workspace = true
+
+[dependencies]
+gpui-kit.workspace = true
+gpui-ribbon.workspace = true
+anyhow.workspace = true
+
+[lints]
+workspace = true

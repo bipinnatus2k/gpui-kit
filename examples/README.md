@@ -15,6 +15,7 @@ not enable the gallery's test-support development dependency.
 | HTML | `cargo run -p example-html` |
 | Large text | `cargo run -p example-large-text` |
 | Markdown | `cargo run -p example-markdown` |
+| Ribbon | `cargo run -p example-ribbon` |
 | Streaming Markdown | `cargo run -p example-stream-markdown` |
 | Tiles | `cargo run -p example-tiles` |
 
