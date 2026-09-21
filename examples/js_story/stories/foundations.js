@@ -75,7 +75,7 @@ export const stories = [
     title: "Toolbar",
     group: "Foundations",
     rustStory: "ToolbarStory",
-    description: "Top toolbar with leading and trailing action regions.",
+    description: "Transparent, sizable command container for headers and tab panels.",
     states: ["normal", "disabled"],
     availability: "pending",
     api: "Toolbar",

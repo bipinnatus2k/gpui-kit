@@ -1,11 +1,11 @@
 ---
 title: Toolbar
-description: A themed bar of commands, usually placed at the top of a window or pane.
+description: A transparent, sizable container for commands in headers, tab panels, and custom surfaces.
 ---
 
 # Toolbar
 
-Toolbar is a horizontal bar that hosts a row of actions — buttons, separators, and short labels — usually placed at the top of a window, pane, or section. It pairs with `TitleBar` above it and `StatusBar` at the bottom.
+Toolbar is a transparent horizontal container for actions — buttons, separators, and short labels — used inside panel headers, tab strips, and custom command surfaces. The surrounding container owns its background and border.
 
 The design mirrors the toolbars found in native UI frameworks: macOS `NSToolbar` and Windows `ToolStrip`.
 
@@ -17,12 +17,12 @@ use gpui_kit::component::toolbar::Toolbar;
 
 ## Regions
 
-Pass any `impl IntoElement` — a string, an `Icon`, a `Button`, a custom layout, etc. `left` and `right` pin items to each end; `child` / `children` add to the middle, whose alignment follows the pinned ends — centered with both `left` and `right`, end-aligned with only `left`, start-aligned otherwise (only `right`, or neither, like a plain bar). Call a method multiple times to add more.
+Use `left`, `right`, and `child` for `Sizable` controls. Toolbar applies its final size to those controls even when `.small()` or another size method appears after them in the builder chain. Use `left_content`, `right_content`, and `content` for strings, separators, and custom layout that should keep its own dimensions.
 
 - For a **command**, pass a ghost `Button` sized to match the toolbar — `Button::new(id).ghost()` — and chain `label`, `icon`, `tooltip`, `on_click`, etc.
 - For an **icon-only button**, always add a `tooltip`; it is the accessible name as well.
-- For a **separator**, pass `Separator::vertical()` with an explicit height (for example `.h_5()`).
-- For a **non-interactive label**, pass a plain string — it inherits the bar's text style and has no hover.
+- For a **separator**, use `left_content`, `right_content`, or `content` with `Separator::vertical()` and an explicit height.
+- For a **non-interactive label**, use one of the content methods with a plain string.
 
 ## Usage
 
@@ -36,7 +36,7 @@ Toolbar::new("toolbar")
             .label("New")
             .on_click(|_, window, cx| { /* ... */ }),
     )
-    .left(Separator::vertical().h_5())
+    .left_content(Separator::vertical().h_5())
     .left(
         Button::new("undo").ghost()
             .icon(IconName::Undo2)
@@ -53,21 +53,22 @@ Toolbar::new("toolbar")
 
 ### Sizes
 
-Use `Sizable` to change the bar height, spacing, and text size together: `xsmall` (28px), `small` (32px), `medium` (40px, default), and `large` (48px). Size the hosted buttons to match.
+Use `Sizable` to change the container height, spacing, text size, and hosted controls together: `xsmall` (28px), `small` (32px), `medium` (40px, default), and `large` (48px). Builder order does not matter.
 
 ```rust
-Toolbar::new("toolbar").small()
-    .left(Button::new("new").ghost().small().icon(IconName::Plus).label("New"))
-    .right(Button::new("find").ghost().small().icon(IconName::Search).tooltip("Find"))
+Toolbar::new("toolbar")
+    .left(Button::new("new").ghost().icon(IconName::Plus).label("New"))
+    .right(Button::new("find").ghost().icon(IconName::Search).tooltip("Find"))
+    .small()
 ```
 
 ### Labels and custom elements
 
 ```rust
 Toolbar::new("toolbar")
-    .left("Dashboard")
-    .left(Separator::vertical().h_5())
-    .child(
+    .left_content("Dashboard")
+    .left_content(Separator::vertical().h_5())
+    .content(
         h_flex()
             .items_center()
             .gap_1()
@@ -79,18 +80,18 @@ Toolbar::new("toolbar")
 
 ### Custom styling
 
-`Toolbar` implements `Styled`, so any style method overrides the defaults.
+`Toolbar` is transparent and borderless by default. It implements `Styled`, so a standalone command surface can add its own appearance.
 
 ```rust
 Toolbar::new("toolbar")
     .bg(cx.theme().secondary)
     .border_color(cx.theme().border)
-    .left("Ready")
+    .left_content("Ready")
 ```
 
 ## Groups
 
-Wrap related controls in `ToolbarGroup` (re-exported from `gpui_base`) to give them an accessible name, so assistive technology reads a run of controls as one unit:
+Wrap related controls in `ToolbarGroup` to give them an accessible name, so assistive technology reads a run of controls as one unit. The group implements `Sizable`, and a parent Toolbar propagates its final size through the group to every control:
 
 ```rust
 use gpui_kit::component::toolbar::ToolbarGroup;
@@ -107,7 +108,7 @@ Toolbar::new("document-toolbar")
 
 Unlike Base UI's `Toolbar.Group`, a group cannot disable its children: that API propagates through React context into Base UI's own button primitives, which has no equivalent for arbitrary GPUI children. Disabling the hosted controls is the caller's job.
 
-`Separator` and `Link` need no toolbar-specific wrappers — pass `Separator::vertical().h_5()` and the existing `Link` component directly.
+Separators and other non-sized elements use the explicit content methods. Sized controls use `left`, `right`, or `child` so the toolbar can propagate its size.
 
 ## Keyboard
 
@@ -128,15 +129,16 @@ Focus wraps around at the ends. Hosted inputs keep their own arrow-key caret beh
 | Method            | Description                                          |
 | ----------------- | ---------------------------------------------------- |
 | `new()`           | Create a new, empty toolbar (medium size)            |
-| `left(child)`     | Append an element to the left region (call to add more) |
-| `right(child)`    | Append an element to the right region                |
-| `child(c)` / `children(cs)` | Add element(s) to the middle region        |
+| `left(control)` / `right(control)` | Add a `Sizable` control to an edge region |
+| `child(c)` / `children(cs)` | Add sized control(s) to the middle region |
+| `left_content(c)` / `right_content(c)` | Add non-sized content to an edge |
+| `content(c)` / `contents(cs)` | Add non-sized content to the middle      |
 | `with_size(size)` | Set the bar size — `xsmall`, `small`, `medium`, `large` |
 
-Each region method takes `impl IntoElement`. `Toolbar` also implements `Styled` and `Sizable`, so style methods (`bg`, `border_color`, `py`, etc.) can override the defaults.
+Control methods require `Sizable + IntoElement`; content methods accept general elements. `Toolbar` also implements `Styled` and `Sizable`.
 
 ## Notes
 
 - The middle (via `child` / `children`) is centered with both `left` and `right`, end-aligned with only `left`, and start-aligned otherwise (only `right`, or neither — like a plain bar).
 - Keep the primary command visible; move low-frequency actions into a dropdown or overflow menu rather than hiding them behind hover.
-- Colors come from the `toolbar` (background) and `toolbar_border` theme tokens, which fall back to the title bar colors.
+- Toolbar has no default background or border; its host surface supplies them.

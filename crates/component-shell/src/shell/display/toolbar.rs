@@ -34,8 +34,12 @@ impl ComponentMaterializer for ToolbarMaterializer {
             .collect::<Vec<_>>();
         for operation in operations {
             component = match operation {
-                ToolbarOp::Left(argument) => component.left(request.resolve_element(&argument)?),
-                ToolbarOp::Right(argument) => component.right(request.resolve_element(&argument)?),
+                ToolbarOp::Left(argument) => {
+                    component.left_content(request.resolve_element(&argument)?)
+                }
+                ToolbarOp::Right(argument) => {
+                    component.right_content(request.resolve_element(&argument)?)
+                }
             };
         }
         component.style().refine(&request.take_style());
@@ -59,7 +63,7 @@ pub(super) fn register(registry: &mut ComponentRegistry) -> Result<(), RegistryE
         _ => Err("Toolbar.right_content(element) expects an element".into()),
     }).with_documentation("Appends content to the trailing region."),
 ])
-.with_documentation("A themed toolbar that hosts a row of actions; ordinary children fill the center and named left/right slots pin content to each edge."))?;
+.with_documentation("A transparent, sizable toolbar container; ordinary children fill the center and named left/right slots pin content to each edge."))?;
     Ok(())
 }
 #[cfg(test)]
