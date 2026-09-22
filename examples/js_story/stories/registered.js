@@ -1867,14 +1867,16 @@ export function registeredExamples(surface, cx) {
                 asElement(
                   new Toolbar("document-toolbar")
                     .w_full()
-                    .left_content(asElement(new Button("toolbar-new").ghost().compact().size("small").label("New")))
-                    .left_content(asElement(new Button("toolbar-open").ghost().compact().size("small").label("Open")))
-                    .left_content(asElement(new VerticalSeparator().h(20)))
-                    .left_content(asElement(new Button("toolbar-undo").ghost().compact().size("small").label("Undo")))
-                    .left_content(asElement(new Button("toolbar-redo").ghost().compact().size("small").label("Redo")))
+                    .child(asElement(new Button("toolbar-new").ghost().compact().size("small").label("New")))
+                    .child(asElement(new Button("toolbar-open").ghost().compact().size("small").label("Open")))
+                    .child(asElement(new VerticalSeparator().h(20)))
+                    .child(asElement(new Button("toolbar-undo").ghost().compact().size("small").label("Undo")))
+                    .child(asElement(new Button("toolbar-redo").ghost().compact().size("small").label("Redo")))
+                    .child(asElement(div().flex_1()))
                     .child(asElement(new Text("Quarterly report")))
-                    .right_content(asElement(new Button("toolbar-find").ghost().compact().size("small").label("Find")))
-                    .right_content(asElement(new Button("toolbar-more").ghost().compact().size("small").label("More"))),
+                    .child(asElement(div().flex_1()))
+                    .child(asElement(new Button("toolbar-find").ghost().compact().size("small").label("Find")))
+                    .child(asElement(new Button("toolbar-more").ghost().compact().size("small").label("More"))),
                 ),
               ),
           ),
@@ -1890,10 +1892,11 @@ export function registeredExamples(surface, cx) {
                 asElement(
                   new Toolbar("table-toolbar")
                     .w_full()
-                    .left_content(asElement(new Text("Open orders · 24")))
-                    .right_content(asElement(new Button("toolbar-export-orders").ghost().compact().size("small").label("Export…")))
-                    .right_content(asElement(new Button("toolbar-refresh-orders").ghost().compact().size("small").label("Refresh")))
-                    .right_content(asElement(new Button("toolbar-columns").ghost().compact().size("small").label("Columns"))),
+                    .child(asElement(new Text("Open orders · 24")))
+                    .child(asElement(div().flex_1()))
+                    .child(asElement(new Button("toolbar-export-orders").ghost().compact().size("small").label("Export…")))
+                    .child(asElement(new Button("toolbar-refresh-orders").ghost().compact().size("small").label("Refresh")))
+                    .child(asElement(new Button("toolbar-columns").ghost().compact().size("small").label("Columns"))),
                 ),
               ),
           ),

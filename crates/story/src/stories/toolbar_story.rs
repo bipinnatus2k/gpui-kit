@@ -1,27 +1,70 @@
+use gpui_kit::assets::IconName as AssetIconName;
 use gpui_kit::component::{
-    ActiveTheme as _, IconName, Sizable as _, Size, WindowExt as _,
-    button::{Button, ButtonVariants as _},
+    ActiveTheme as _, IconName, IndexPath, Sizable as _, Size,
+    button::{Button, Toggle},
+    combobox::{Combobox, ComboboxState},
     dock::PanelControl,
-    h_flex,
+    input::{Input, InputState},
+    searchable_list::SearchableVec,
+    select::{Select, SelectState},
     separator::Separator,
     toolbar::{Toolbar, ToolbarGroup},
     v_flex,
 };
 use gpui_kit::{
-    App, AppContext, Context, Entity, FocusHandle, Focusable, IntoElement, ParentElement, Render,
-    Styled, Window, div, px,
+    App, AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
+    ParentElement, Render, Styled, Window, div, px,
 };
 
-use crate::section;
+use crate::{ChangeStorySize, section, story_toolbar_group};
 
 pub struct ToolbarStory {
     focus_handle: FocusHandle,
+    size: Size,
+    formats: [bool; 3],
+    font: Entity<SelectState<Vec<&'static str>>>,
+    market: Entity<SelectState<Vec<&'static str>>>,
+    status: Entity<ComboboxState<SearchableVec<&'static str>>>,
+    query: Entity<InputState>,
 }
 
 impl ToolbarStory {
-    fn new(_: &mut Window, cx: &mut Context<Self>) -> Self {
+    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let font = cx.new(|cx| {
+            SelectState::new(
+                vec!["Inter", "SF Pro", "Helvetica", "Georgia"],
+                Some(IndexPath::default()),
+                window,
+                cx,
+            )
+        });
+        let market = cx.new(|cx| {
+            SelectState::new(
+                vec!["All markets", "US market", "Hong Kong", "Singapore"],
+                Some(IndexPath::default()),
+                window,
+                cx,
+            )
+        });
+        let status = cx.new(|cx| {
+            ComboboxState::new(
+                SearchableVec::new(vec!["Open", "In progress", "Filled", "Cancelled"]),
+                vec![],
+                window,
+                cx,
+            )
+            .searchable(true)
+        });
+        let query = cx.new(|cx| InputState::new(window, cx).placeholder("Search"));
+
         Self {
             focus_handle: cx.focus_handle(),
+            size: Size::Medium,
+            formats: [true, false, false],
+            font,
+            market,
+            status,
+            query,
         }
     }
 
@@ -31,43 +74,36 @@ impl ToolbarStory {
 }
 
 fn icon_button(id: &'static str, icon: IconName, tooltip: &'static str) -> Button {
-    Button::new(id)
-        .ghost()
-        .compact()
-        .icon(icon)
-        .tooltip(tooltip)
-        .on_click(move |_, window, cx| window.push_notification(tooltip, cx))
+    Button::new(id).icon(icon).tooltip(tooltip)
 }
 
-fn size_example(
-    label: &'static str,
-    toolbar_id: &'static str,
-    new_id: &'static str,
-    undo_id: &'static str,
-    redo_id: &'static str,
-    search_id: &'static str,
-    size: Size,
-) -> impl IntoElement {
-    h_flex()
-        .w_full()
-        .items_center()
-        .gap_4()
-        .child(div().w_16().child(label))
-        .child(
-            Toolbar::new(toolbar_id)
-                .with_size(size)
-                .child(
-                    Button::new(new_id)
-                        .ghost()
-                        .compact()
-                        .icon(IconName::Plus)
-                        .label("New"),
-                )
-                .child(icon_button(undo_id, IconName::Undo2, "Undo"))
-                .child(icon_button(redo_id, IconName::Redo2, "Redo"))
-                .content(Separator::vertical().h_5())
-                .child(icon_button(search_id, IconName::Search, "Search")),
-        )
+fn toolbar_options(size: Size) -> impl IntoElement {
+    let label = match size {
+        Size::XSmall => "XSmall",
+        Size::Small => "Small",
+        _ => "Medium",
+    };
+
+    story_toolbar_group().dropdown_child(
+        Button::new("toolbar-options").label(format!("Size: {label}")),
+        move |menu, _, _| {
+            menu.menu_with_check(
+                "XSmall",
+                size == Size::XSmall,
+                Box::new(ChangeStorySize(Size::XSmall)),
+            )
+            .menu_with_check(
+                "Small",
+                size == Size::Small,
+                Box::new(ChangeStorySize(Size::Small)),
+            )
+            .menu_with_check(
+                "Medium",
+                size == Size::Medium,
+                Box::new(ChangeStorySize(Size::Medium)),
+            )
+        },
+    )
 }
 
 impl super::Story for ToolbarStory {
@@ -76,7 +112,7 @@ impl super::Story for ToolbarStory {
     }
 
     fn description() -> &'static str {
-        "A transparent, sizable container for application commands."
+        "Groups commands and controls into one keyboard-navigable row."
     }
 
     fn new_view(window: &mut Window, cx: &mut App) -> Entity<impl Render> {
@@ -100,83 +136,103 @@ impl Render for ToolbarStory {
             .w_full()
             .items_center()
             .gap_6()
+            .on_action(cx.listener(|this, action: &ChangeStorySize, _, cx| {
+                this.size = action.0;
+                cx.notify();
+            }))
+            .child(toolbar_options(self.size))
             .child(
-                section("Document toolbar")
-                    .description("A standard command bar with leading actions, a centered document name, grouped history commands, and trailing utilities.")
-                    .w(px(760.))
+                section("Default")
+                    .description("Keep document, history, and formatting commands in one compact editor toolbar.")
+                    .w(px(640.))
                     .child(
-                        div()
+                        Toolbar::new("default-toolbar")
                             .w_full()
+                            .with_size(self.size)
                             .border_1()
+                            .border_color(cx.theme().border)
                             .rounded(cx.theme().radius)
-                            .border_color(cx.theme().border)
                             .child(
-                                Toolbar::new("document-toolbar")
-                                    .w_full()
-                                    .small()
-                                    .left(
+                                ToolbarGroup::new("document-group")
+                                    .label("Document")
+                                    .gap_1()
+                                    .child(
                                         Button::new("new-document")
-                                            .ghost()
-                                            .compact()
                                             .icon(IconName::Plus)
-                                            .label("New")
-                                            .on_click(|_, window, cx| window.push_notification("New document", cx)),
+                                            .label("New"),
                                     )
-                                    .left(icon_button("open-document", IconName::FolderOpen, "Open"))
-                                    .left_content(Separator::vertical().h_5())
-                                    .left(
-                                        ToolbarGroup::new("history-commands")
-                                            .label("History")
-                                            .gap_1()
-                                            .child(icon_button("undo", IconName::Undo2, "Undo"))
-                                            .child(icon_button("redo", IconName::Redo2, "Redo")),
-                                    )
-                                    .content(div().text_color(cx.theme().muted_foreground).child("Quarterly report"))
-                                    .right(icon_button("find", IconName::Search, "Find"))
-                                    .right(icon_button("document-menu", IconName::Ellipsis, "More commands")),
-                            ),
-                    ),
-            )
-            .child(
-                section("Table toolbar")
-                    .description("A compact data toolbar. The surrounding table header owns the divider, while the toolbar sizes every command.")
-                    .w(px(760.))
-                    .child(
-                        div()
-                            .w_full()
-                            .border_b_1()
-                            .border_color(cx.theme().border)
+                                    .child(
+                                        Button::new("save-document")
+                                            .icon(AssetIconName::Save)
+                                            .label("Save"),
+                                    ),
+                            )
+                            .content(Separator::vertical().h_5())
                             .child(
-                                Toolbar::new("table-toolbar")
-                                    .w_full()
-                                    .small()
-                                    .left_content("Open orders")
-                                    .left_content(div().text_color(cx.theme().muted_foreground).child("24"))
-                                    .right(
-                                        Button::new("export-orders")
-                                            .ghost()
-                                            .compact()
-                                            .icon(IconName::FileText)
-                                            .label("Export…")
-                                            .tooltip("Export orders"),
+                                ToolbarGroup::new("history-group")
+                                    .label("History")
+                                    .gap_1()
+                                    .child(icon_button("undo", IconName::Undo2, "Undo"))
+                                    .child(icon_button("redo", IconName::Redo2, "Redo")),
+                            )
+                            .content(Separator::vertical().h_5())
+                            .child(
+                                ToolbarGroup::new("formatting-group")
+                                    .label("Formatting")
+                                    .gap_1()
+                                    .child(
+                                        Toggle::new("bold")
+                                            .label("B")
+                                            .checked(self.formats[0])
+                                            .on_click(cx.listener(|this, checked, _, cx| {
+                                                this.formats[0] = *checked;
+                                                cx.notify();
+                                            })),
                                     )
-                                    .right(icon_button("refresh-orders", IconName::RotateCw, "Refresh"))
-                                    .right(icon_button("table-settings", IconName::Settings2, "Configure columns")),
-                            ),
+                                    .child(
+                                        Toggle::new("italic")
+                                            .label("I")
+                                            .checked(self.formats[1])
+                                            .on_click(cx.listener(|this, checked, _, cx| {
+                                                this.formats[1] = *checked;
+                                                cx.notify();
+                                            })),
+                                    )
+                                    .child(
+                                        Toggle::new("underline")
+                                            .label("U")
+                                            .checked(self.formats[2])
+                                            .on_click(cx.listener(|this, checked, _, cx| {
+                                                this.formats[2] = *checked;
+                                                cx.notify();
+                                            })),
+                                    ),
+                            )
+                            .content(Separator::vertical().h_5())
+                            .child(Select::new(&self.font).placeholder("Font").w_40()),
                     ),
             )
             .child(
-                section("Sizes")
-                    .description("The same command set at every supported density. Toolbar applies the size; its buttons use compact toolbar padding.")
-                    .w(px(760.))
+                section("Mixed controls")
+                    .description("Select and Combobox inherit the same density while preserving their own popup behavior.")
+                    .w(px(640.))
                     .child(
-                        v_flex()
+                        Toolbar::new("mixed-toolbar")
                             .w_full()
-                            .gap_2()
-                            .child(size_example("XSmall", "xsmall-toolbar", "xsmall-new", "xsmall-undo", "xsmall-redo", "xsmall-search", Size::XSmall))
-                            .child(size_example("Small", "small-toolbar", "small-new", "small-undo", "small-redo", "small-search", Size::Small))
-                            .child(size_example("Medium", "medium-toolbar", "medium-new", "medium-undo", "medium-redo", "medium-search", Size::Medium))
-                            .child(size_example("Large", "large-toolbar", "large-new", "large-undo", "large-redo", "large-search", Size::Large)),
+                            .with_size(self.size)
+                            .border_1()
+                            .border_color(cx.theme().border)
+                            .rounded(cx.theme().radius)
+                            .child(Input::new(&self.query).prefix(IconName::Search).w_40())
+                            .child(Select::new(&self.market).placeholder("Market").w_32())
+                            .child(
+                                Combobox::new(&self.status)
+                                    .placeholder("Order status")
+                                    .w_40(),
+                            )
+                            .content(div().flex_1())
+                            .child(icon_button("refresh", IconName::RotateCw, "Refresh"))
+                            .child(icon_button("settings", IconName::Settings2, "Configure columns")),
                     ),
             )
     }

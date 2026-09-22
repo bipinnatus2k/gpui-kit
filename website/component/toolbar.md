@@ -15,13 +15,13 @@ The design mirrors the toolbars found in native UI frameworks: macOS `NSToolbar`
 use gpui_kit::component::toolbar::Toolbar;
 ```
 
-## Regions
+## Composition
 
-Use `left`, `right`, and `child` for `Sizable` controls. Toolbar applies its final size to those controls even when `.small()` or another size method appears after them in the builder chain. Use `left_content`, `right_content`, and `content` for strings, separators, and custom layout that should keep its own dimensions.
+Use `child` for `Sizable` controls. Toolbar applies its final size to those controls even when `.small()` or another size method appears after them in the builder chain. Use `content` for strings, separators, flexible spacers, and custom layout that should keep its own dimensions. Items render in source order.
 
-- For a **command**, pass a ghost `Button` sized to match the toolbar — `Button::new(id).ghost()` — and chain `label`, `icon`, `tooltip`, `on_click`, etc.
+- For a **command**, pass a `Button`; Toolbar applies its size and forces the quiet `ghost + compact` presentation. Chain `label`, `icon`, `tooltip`, `on_click`, etc. as needed.
 - For an **icon-only button**, always add a `tooltip`; it is the accessible name as well.
-- For a **separator**, use `left_content`, `right_content`, or `content` with `Separator::vertical()` and an explicit height.
+- For a **separator**, use `content` with `Separator::vertical()` and an explicit height.
 - For a **non-interactive label**, use one of the content methods with a plain string.
 
 ## Usage
@@ -30,21 +30,22 @@ Use `left`, `right`, and `child` for `Sizable` controls. Toolbar applies its fin
 
 ```rust
 Toolbar::new("toolbar")
-    .left(
-        Button::new("new").ghost()
+    .child(
+        Button::new("new")
             .icon(IconName::Plus)
             .label("New")
             .on_click(|_, window, cx| { /* ... */ }),
     )
-    .left_content(Separator::vertical().h_5())
-    .left(
-        Button::new("undo").ghost()
+    .content(Separator::vertical().h_5())
+    .child(
+        Button::new("undo")
             .icon(IconName::Undo2)
             .tooltip("Undo")
             .on_click(|_, window, cx| { /* ... */ }),
     )
-    .right(
-        Button::new("more").ghost()
+    .content(div().flex_1())
+    .child(
+        Button::new("more")
             .icon(IconName::Ellipsis)
             .tooltip("More options")
             .on_click(|_, window, cx| { /* ... */ }),
@@ -53,12 +54,12 @@ Toolbar::new("toolbar")
 
 ### Sizes
 
-Use `Sizable` to change the container height, spacing, text size, and hosted controls together: `xsmall` (28px), `small` (32px), `medium` (40px, default), and `large` (48px). Builder order does not matter.
+Use `Sizable` to change the container height, spacing, text size, and hosted controls together: `xsmall` (28px), `small` (32px, default), and `medium` (48px). Builder order does not matter.
 
 ```rust
 Toolbar::new("toolbar")
-    .left(Button::new("new").ghost().icon(IconName::Plus).label("New"))
-    .right(Button::new("find").ghost().icon(IconName::Search).tooltip("Find"))
+    .child(Button::new("new").icon(IconName::Plus).label("New"))
+    .child(Button::new("find").icon(IconName::Search).tooltip("Find"))
     .small()
 ```
 
@@ -66,8 +67,8 @@ Toolbar::new("toolbar")
 
 ```rust
 Toolbar::new("toolbar")
-    .left_content("Dashboard")
-    .left_content(Separator::vertical().h_5())
+    .content("Dashboard")
+    .content(Separator::vertical().h_5())
     .content(
         h_flex()
             .items_center()
@@ -75,7 +76,8 @@ Toolbar::new("toolbar")
             .child(Icon::new(IconName::CircleCheck).xsmall())
             .child("Saved"),
     )
-    .right(Button::new("settings").ghost().icon(IconName::Settings2).tooltip("Settings"))
+    .content(div().flex_1())
+    .child(Button::new("settings").icon(IconName::Settings2).tooltip("Settings"))
 ```
 
 ### Custom styling
@@ -86,7 +88,7 @@ Toolbar::new("toolbar")
 Toolbar::new("toolbar")
     .bg(cx.theme().secondary)
     .border_color(cx.theme().border)
-    .left_content("Ready")
+    .content("Ready")
 ```
 
 ## Groups
@@ -97,18 +99,18 @@ Wrap related controls in `ToolbarGroup` to give them an accessible name, so assi
 use gpui_kit::component::toolbar::ToolbarGroup;
 
 Toolbar::new("document-toolbar")
-    .left(
+    .child(
         ToolbarGroup::new("history-group")
             .label("History")
             .gap_2() // match the bar's own item spacing
-            .child(Button::new("undo").ghost().icon(IconName::Undo2).tooltip("Undo"))
-            .child(Button::new("redo").ghost().icon(IconName::Redo2).tooltip("Redo")),
+            .child(Button::new("undo").icon(IconName::Undo2).tooltip("Undo"))
+            .child(Button::new("redo").icon(IconName::Redo2).tooltip("Redo")),
     )
 ```
 
 Unlike Base UI's `Toolbar.Group`, a group cannot disable its children: that API propagates through React context into Base UI's own button primitives, which has no equivalent for arbitrary GPUI children. Disabling the hosted controls is the caller's job.
 
-Separators and other non-sized elements use the explicit content methods. Sized controls use `left`, `right`, or `child` so the toolbar can propagate its size.
+Separators and other non-sized elements use `content`. Sized controls use `child` so the toolbar can propagate its size.
 
 ## Keyboard
 
@@ -128,17 +130,15 @@ Focus wraps around at the ends. Hosted inputs keep their own arrow-key caret beh
 
 | Method            | Description                                          |
 | ----------------- | ---------------------------------------------------- |
-| `new()`           | Create a new, empty toolbar (medium size)            |
-| `left(control)` / `right(control)` | Add a `Sizable` control to an edge region |
-| `child(c)` / `children(cs)` | Add sized control(s) to the middle region |
-| `left_content(c)` / `right_content(c)` | Add non-sized content to an edge |
-| `content(c)` / `contents(cs)` | Add non-sized content to the middle      |
-| `with_size(size)` | Set the bar size — `xsmall`, `small`, `medium`, `large` |
+| `new()`           | Create a new, empty toolbar (small size)             |
+| `child(c)` / `children(cs)` | Add sized control(s) in source order      |
+| `content(c)` / `contents(cs)` | Add non-sized content in source order    |
+| `with_size(size)` | Set the bar size — `xsmall`, `small`, or `medium`       |
 
 Control methods require `Sizable + IntoElement`; content methods accept general elements. `Toolbar` also implements `Styled` and `Sizable`.
 
 ## Notes
 
-- The middle (via `child` / `children`) is centered with both `left` and `right`, end-aligned with only `left`, and start-aligned otherwise (only `right`, or neither — like a plain bar).
+- Use `content(div().flex_1())` when later items need to align to the trailing edge.
 - Keep the primary command visible; move low-frequency actions into a dropdown or overflow menu rather than hiding them behind hover.
 - Toolbar has no default background or border; its host surface supplies them.
