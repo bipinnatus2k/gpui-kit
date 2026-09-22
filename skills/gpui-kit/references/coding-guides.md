@@ -105,14 +105,10 @@ Initialize GPUI Component once, before creating component-backed views, and put
 app.run(move |cx| {
     gpui_kit::init(cx);
 
-    cx.spawn(async move |cx| {
-        cx.open_window(WindowOptions::default(), |window, cx| {
-            let workspace = cx.new(|cx| Workspace::new(window, cx));
-            cx.new(|cx| Root::new(workspace, window, cx))
-        })
-        .expect("failed to open window");
+    gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+        cx.new(|cx| Workspace::new(window, cx))
     })
-    .detach();
+    .expect("failed to open window");
 });
 ```
 
@@ -393,10 +389,16 @@ that state available to its components. Do not write a custom spacing snapshot
 into the global theme and expect a later `cx.theme().semantic_tokens()` call to
 return it.
 
-If code mutates the global GPUI Component theme directly, call
-`Theme::sync_base(cx)` afterward so Base-owned scrollbars and resize handles
-receive the new projection. `Theme::change(...)` performs this projection as
-part of a complete theme change.
+Edit the global GPUI Component theme through `Theme::update(cx, |theme| ...)`.
+The theme keeps the same colors twice (`colors` as solid colors, `tokens` as
+renderable backgrounds that may carry a gradient) and the Base layer holds a
+projection for its scrollbars and resize handles; `update` brings all three
+back in step after the closure and refreshes every window. An edit through
+`Theme::global_mut(cx)` updates only the field you touched — a sidebar can then
+paint its text from the new colors and its background from the old tokens —
+so it owns the rest: derive `tokens` from `colors`, call `Theme::sync_base(cx)`,
+refresh the windows. `Theme::change(...)` performs the projection as part of a
+complete theme change.
 
 An outward focus ring needs physical room. An ancestor with
 `overflow_hidden()` clips it. Prefer layouts that leave room; if a product must
@@ -405,18 +407,17 @@ instead of silently hiding all keyboard focus.
 
 ### Base font is the application zoom control
 
-`Root::render` calls `window.set_rem_size(cx.theme().font_size)`. Therefore the
-theme's base font is not only body typography; it is the reference length for
-the application's rem-based design scale. This deliberately follows the useful
-part of Tailwind's model: named type, spacing, and size steps share one relative
-base instead of becoming unrelated pixel constants.
+The Component Root plugin calls `window.set_rem_size(cx.theme().font_size)` from
+its `prepare` hook before the Root surface is rendered. Therefore the theme's
+base font is not only body typography; it is the reference length for the
+application's rem-based design scale. This deliberately follows the useful part
+of Tailwind's model: named type, spacing, and size steps share one relative base
+instead of becoming unrelated pixel constants.
 
 Change zoom by updating the base font and refreshing the window:
 
 ```rust
-Theme::global_mut(cx).font_size = px(18.);
-Theme::sync_base(cx);
-window.refresh();
+Theme::update(cx, |theme| theme.font_size = px(18.));
 ```
 
 The base font itself is a pixel value because it anchors the scale. Descendant

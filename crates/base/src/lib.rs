@@ -46,10 +46,12 @@ mod popover;
 mod popup;
 mod positioner;
 mod progress;
+pub mod questionnaire;
 mod radio;
 mod radio_group;
 mod reduce_motion;
 mod resizable;
+mod root;
 mod scroll_bounce;
 mod scrollable_mask;
 mod scrollbar;
@@ -150,6 +152,7 @@ pub use resizable::{
     ResizablePanel, ResizablePanelEvent, ResizablePanelGroup, ResizableState, ResizeHandleContext,
     ResizeHandleRenderer, h_resizable, resizable_panel, v_resizable,
 };
+pub use root::{Root, RootPlugin};
 pub use scroll_bounce::{ScrollBounce, ScrollBounceMotion};
 pub use scrollable_mask::ScrollableMask;
 pub use scrollbar::{
@@ -228,6 +231,7 @@ pub fn init(cx: &mut App) {
     input::init(cx);
     tree::init(cx);
     text::init(cx);
+    root::init(cx);
 }
 
 #[cfg(feature = "test-support")]
