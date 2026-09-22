@@ -1,6 +1,6 @@
 use gpui::{
-    AnyElement, App, Axis, Div, ElementId, FocusHandle, InteractiveElement, Interactivity,
-    IntoElement, KeyDownEvent, ParentElement, RenderOnce, Role, SharedString, Stateful,
+    AnyElement, App, Div, ElementId, FocusHandle, InteractiveElement, Interactivity, IntoElement,
+    KeyDownEvent, ParentElement, RenderOnce, Role, SharedString, Stateful,
     StatefulInteractiveElement, StyleRefinement, Styled, Window, accesskit, div,
     prelude::FluentBuilder as _,
 };
@@ -27,11 +27,8 @@ const MAX_FOCUS_ATTEMPTS: usize = 100;
 ///
 /// Keyboard contract:
 ///
-/// - Arrow keys move focus along the toolbar's [`Axis`] to the previous or
-///   next focusable descendant, wrapping around at either end (the same
-///   default as Base UI's `loopFocus`). A non-wrapping mode would need to
-///   distinguish a wrapped step from an ordinary one, which is not possible
-///   with GPUI's public tab-stop API.
+/// - Left and Right move focus to the previous or next focusable descendant,
+///   wrapping around at either end (the same default as Base UI's `loopFocus`).
 /// - When `disabled`, the arrow keys do nothing. Hosted controls must be
 ///   disabled by their owner; the flag only suppresses the toolbar's own
 ///   navigation.
@@ -49,7 +46,6 @@ pub struct Toolbar {
     id: ElementId,
     base: Stateful<Div>,
     style: StyleRefinement,
-    axis: Axis,
     disabled: bool,
     children: SmallVec<[AnyElement; 4]>,
 }
@@ -60,17 +56,10 @@ impl Toolbar {
         Self {
             base: div().id(id.clone()),
             style: StyleRefinement::default(),
-            axis: Axis::Horizontal,
             disabled: false,
             children: SmallVec::new(),
             id,
         }
-    }
-
-    /// Sets the semantic axis the arrow keys follow. Defaults to horizontal.
-    pub fn axis(mut self, axis: Axis) -> Self {
-        self.axis = axis;
-        self
     }
 
     /// Disables the toolbar's own keyboard navigation. Hosted controls are
@@ -123,7 +112,6 @@ fn move_focus(container: &FocusHandle, forward: bool, window: &mut Window, cx: &
 }
 
 fn handle_key_down(
-    axis: Axis,
     disabled: bool,
     container: &FocusHandle,
     event: &KeyDownEvent,
@@ -134,11 +122,9 @@ fn handle_key_down(
         return;
     }
 
-    let forward = match (axis, event.keystroke.key.as_str()) {
-        (Axis::Horizontal, "left") => Some(false),
-        (Axis::Horizontal, "right") => Some(true),
-        (Axis::Vertical, "up") => Some(false),
-        (Axis::Vertical, "down") => Some(true),
+    let forward = match event.keystroke.key.as_str() {
+        "left" => Some(false),
+        "right" => Some(true),
         _ => None,
     };
 
@@ -173,7 +159,6 @@ impl RenderOnce for Toolbar {
         let Self {
             base,
             style,
-            axis,
             disabled,
             children,
             ..
@@ -188,20 +173,16 @@ impl RenderOnce for Toolbar {
             })
             .read(cx)
             .clone();
-        let orientation = match axis {
-            Axis::Horizontal => accesskit::Orientation::Horizontal,
-            Axis::Vertical => accesskit::Orientation::Vertical,
-        };
         let key_handler = {
             let focus_handle = focus_handle.clone();
             move |event: &KeyDownEvent, window: &mut Window, cx: &mut App| {
-                handle_key_down(axis, disabled, &focus_handle, event, window, cx);
+                handle_key_down(disabled, &focus_handle, event, window, cx);
             }
         };
 
         base.track_focus(&focus_handle)
             .role(Role::Toolbar)
-            .aria_orientation(orientation)
+            .aria_orientation(accesskit::Orientation::Horizontal)
             .on_key_down(key_handler)
             .children(children)
             .refine_style(&style)
@@ -289,10 +270,7 @@ mod tests {
 
     #[test]
     fn test_toolbar_builder() {
-        let toolbar = Toolbar::new("toolbar")
-            .axis(Axis::Vertical)
-            .disabled(true)
-            .child(div());
+        let toolbar = Toolbar::new("toolbar").disabled(true).child(div());
 
         assert!(toolbar.disabled);
         assert_eq!(toolbar.children.len(), 1);
@@ -302,7 +280,6 @@ mod tests {
     fn test_toolbar_defaults() {
         let toolbar = Toolbar::new("toolbar");
 
-        assert!(matches!(toolbar.axis, Axis::Horizontal));
         assert!(!toolbar.disabled);
         assert!(toolbar.children.is_empty());
     }

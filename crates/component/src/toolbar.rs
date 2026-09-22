@@ -159,6 +159,7 @@ pub struct Toolbar {
     id: ElementId,
     style: StyleRefinement,
     size: Size,
+    disabled: bool,
     items: SmallVec<[ToolbarItem; 4]>,
 }
 
@@ -169,8 +170,16 @@ impl Toolbar {
             id: id.into(),
             style: StyleRefinement::default(),
             size: Size::Small,
+            disabled: false,
             items: SmallVec::new(),
         }
+    }
+
+    /// Disable the toolbar's roving keyboard navigation.
+    /// Hosted controls must be disabled by their owner.
+    pub fn disabled(mut self, disabled: bool) -> Self {
+        self.disabled = disabled;
+        self
     }
 
     /// Append a sized control. The toolbar applies its
@@ -236,6 +245,7 @@ impl RenderOnce for Toolbar {
         let items = self.items.into_iter().map(|item| item.into_element(size));
 
         BaseToolbar::new(self.id)
+            .disabled(self.disabled)
             .flex()
             .items_center()
             .flex_shrink_0()
@@ -326,6 +336,7 @@ mod tests {
         let toolbar = Toolbar::new("toolbar");
 
         assert_eq!(toolbar.size, Size::Small);
+        assert!(!toolbar.disabled);
         assert!(toolbar.items.is_empty());
     }
 

@@ -1,6 +1,6 @@
 use gpui_kit::assets::IconName as AssetIconName;
 use gpui_kit::component::{
-    ActiveTheme as _, IconName, IndexPath, Sizable as _, Size,
+    ActiveTheme as _, Disableable as _, IconName, IndexPath, Sizable as _, Size,
     button::{Button, Toggle},
     combobox::{Combobox, ComboboxState},
     dock::PanelControl,
@@ -12,15 +12,21 @@ use gpui_kit::component::{
     v_flex,
 };
 use gpui_kit::{
-    App, AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    ParentElement, Render, Styled, Window, div, px,
+    Action, App, AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement,
+    IntoElement, ParentElement, Render, Styled, Window, div, px,
 };
+use serde::Deserialize;
 
 use crate::{ChangeStorySize, section, story_toolbar_group};
+
+#[derive(Action, Clone, PartialEq, Eq, Deserialize)]
+#[action(namespace = toolbar_story, no_json)]
+struct ToggleDisabled;
 
 pub struct ToolbarStory {
     focus_handle: FocusHandle,
     size: Size,
+    disabled: bool,
     formats: [bool; 3],
     font: Entity<SelectState<Vec<&'static str>>>,
     market: Entity<SelectState<Vec<&'static str>>>,
@@ -60,6 +66,7 @@ impl ToolbarStory {
         Self {
             focus_handle: cx.focus_handle(),
             size: Size::Medium,
+            disabled: false,
             formats: [true, false, false],
             font,
             market,
@@ -73,11 +80,14 @@ impl ToolbarStory {
     }
 }
 
-fn icon_button(id: &'static str, icon: IconName, tooltip: &'static str) -> Button {
-    Button::new(id).icon(icon).tooltip(tooltip)
+fn icon_button(id: &'static str, icon: IconName, tooltip: &'static str, disabled: bool) -> Button {
+    Button::new(id)
+        .icon(icon)
+        .tooltip(tooltip)
+        .disabled(disabled)
 }
 
-fn toolbar_options(size: Size) -> impl IntoElement {
+fn toolbar_options(size: Size, disabled: bool) -> impl IntoElement {
     let label = match size {
         Size::XSmall => "XSmall",
         Size::Small => "Small",
@@ -102,6 +112,8 @@ fn toolbar_options(size: Size) -> impl IntoElement {
                 size == Size::Medium,
                 Box::new(ChangeStorySize(Size::Medium)),
             )
+            .separator()
+            .menu_with_check("Disabled", disabled, Box::new(ToggleDisabled))
         },
     )
 }
@@ -140,7 +152,11 @@ impl Render for ToolbarStory {
                 this.size = action.0;
                 cx.notify();
             }))
-            .child(toolbar_options(self.size))
+            .on_action(cx.listener(|this, _: &ToggleDisabled, _, cx| {
+                this.disabled = !this.disabled;
+                cx.notify();
+            }))
+            .child(toolbar_options(self.size, self.disabled))
             .child(
                 section("Default")
                     .description("Keep document, history, and formatting commands in one compact editor toolbar.")
@@ -149,6 +165,7 @@ impl Render for ToolbarStory {
                         Toolbar::new("default-toolbar")
                             .w_full()
                             .with_size(self.size)
+                            .disabled(self.disabled)
                             .border_1()
                             .border_color(cx.theme().border)
                             .rounded(cx.theme().radius)
@@ -159,12 +176,14 @@ impl Render for ToolbarStory {
                                     .child(
                                         Button::new("new-document")
                                             .icon(IconName::Plus)
-                                            .label("New"),
+                                            .label("New")
+                                            .disabled(self.disabled),
                                     )
                                     .child(
                                         Button::new("save-document")
                                             .icon(AssetIconName::Save)
-                                            .label("Save"),
+                                            .label("Save")
+                                            .disabled(self.disabled),
                                     ),
                             )
                             .content(Separator::vertical().h_5())
@@ -172,8 +191,18 @@ impl Render for ToolbarStory {
                                 ToolbarGroup::new("history-group")
                                     .label("History")
                                     .gap_1()
-                                    .child(icon_button("undo", IconName::Undo2, "Undo"))
-                                    .child(icon_button("redo", IconName::Redo2, "Redo")),
+                                    .child(icon_button(
+                                        "undo",
+                                        IconName::Undo2,
+                                        "Undo",
+                                        self.disabled,
+                                    ))
+                                    .child(icon_button(
+                                        "redo",
+                                        IconName::Redo2,
+                                        "Redo",
+                                        self.disabled,
+                                    )),
                             )
                             .content(Separator::vertical().h_5())
                             .child(
@@ -184,6 +213,7 @@ impl Render for ToolbarStory {
                                         Toggle::new("bold")
                                             .label("B")
                                             .checked(self.formats[0])
+                                            .disabled(self.disabled)
                                             .on_click(cx.listener(|this, checked, _, cx| {
                                                 this.formats[0] = *checked;
                                                 cx.notify();
@@ -193,6 +223,7 @@ impl Render for ToolbarStory {
                                         Toggle::new("italic")
                                             .label("I")
                                             .checked(self.formats[1])
+                                            .disabled(self.disabled)
                                             .on_click(cx.listener(|this, checked, _, cx| {
                                                 this.formats[1] = *checked;
                                                 cx.notify();
@@ -202,6 +233,7 @@ impl Render for ToolbarStory {
                                         Toggle::new("underline")
                                             .label("U")
                                             .checked(self.formats[2])
+                                            .disabled(self.disabled)
                                             .on_click(cx.listener(|this, checked, _, cx| {
                                                 this.formats[2] = *checked;
                                                 cx.notify();
@@ -209,7 +241,12 @@ impl Render for ToolbarStory {
                                     ),
                             )
                             .content(Separator::vertical().h_5())
-                            .child(Select::new(&self.font).placeholder("Font").w_40()),
+                            .child(
+                                Select::new(&self.font)
+                                    .placeholder("Font")
+                                    .disabled(self.disabled)
+                                    .w_40(),
+                            ),
                     ),
             )
             .child(
@@ -220,19 +257,41 @@ impl Render for ToolbarStory {
                         Toolbar::new("mixed-toolbar")
                             .w_full()
                             .with_size(self.size)
+                            .disabled(self.disabled)
                             .border_1()
                             .border_color(cx.theme().border)
                             .rounded(cx.theme().radius)
-                            .child(Input::new(&self.query).prefix(IconName::Search).w_40())
-                            .child(Select::new(&self.market).placeholder("Market").w_32())
+                            .child(
+                                Input::new(&self.query)
+                                    .prefix(IconName::Search)
+                                    .disabled(self.disabled)
+                                    .w_40(),
+                            )
+                            .child(
+                                Select::new(&self.market)
+                                    .placeholder("Market")
+                                    .disabled(self.disabled)
+                                    .w_32(),
+                            )
                             .child(
                                 Combobox::new(&self.status)
                                     .placeholder("Order status")
+                                    .disabled(self.disabled)
                                     .w_40(),
                             )
                             .content(div().flex_1())
-                            .child(icon_button("refresh", IconName::RotateCw, "Refresh"))
-                            .child(icon_button("settings", IconName::Settings2, "Configure columns")),
+                            .child(icon_button(
+                                "refresh",
+                                IconName::RotateCw,
+                                "Refresh",
+                                self.disabled,
+                            ))
+                            .child(icon_button(
+                                "settings",
+                                IconName::Settings2,
+                                "Configure columns",
+                                self.disabled,
+                            )),
                     ),
             )
     }

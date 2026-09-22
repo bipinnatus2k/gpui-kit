@@ -134,6 +134,7 @@ Toolbar::new("document-toolbar")
 | `child(c)` / `children(cs)` | 按源码顺序添加可调尺寸控件       |
 | `content(c)` / `contents(cs)` | 按源码顺序添加非尺寸化内容       |
 | `with_size(size)` | 设置工具栏尺寸 —— `xsmall`、`small` 或 `medium`         |
+| `disabled(value)` | 禁用方向键导航；宿主同时负责禁用内部控件             |
 
 控件方法要求 `Sizable + IntoElement`，content 方法接受通用元素。`Toolbar` 同时实现了 `Styled` 和 `Sizable`。
 

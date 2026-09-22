@@ -134,6 +134,7 @@ Focus wraps around at the ends. Hosted inputs keep their own arrow-key caret beh
 | `child(c)` / `children(cs)` | Add sized control(s) in source order      |
 | `content(c)` / `contents(cs)` | Add non-sized content in source order    |
 | `with_size(size)` | Set the bar size — `xsmall`, `small`, or `medium`       |
+| `disabled(value)` | Disable roving navigation; the owner also disables hosted controls |
 
 Control methods require `Sizable + IntoElement`; content methods accept general elements. `Toolbar` also implements `Styled` and `Sizable`.
 
